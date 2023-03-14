@@ -3,7 +3,6 @@
 !*.scala
 !build.*
 !.gitignore
-!*.v
 !src/
 !LICENSE
 !README.md
