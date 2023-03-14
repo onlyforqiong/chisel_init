@@ -1,6 +1,6 @@
 *.*
 *
-!src/*
+!./src/*
 !*.scala
 !build.*
 !.gitignore
