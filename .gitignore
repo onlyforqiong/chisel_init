@@ -1,8 +1,8 @@
 *.*
 *
+!src/*
 !*.scala
 !build.*
 !.gitignore
-!src/
 !LICENSE
 !README.md
