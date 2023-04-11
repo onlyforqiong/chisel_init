@@ -44,7 +44,7 @@ class segment_shine(sum_num:Int) extends  Module{
 
 }
 
-class led_shine(sum_counter:Int) extends Module  {
+class led_shine(sum_counter:Int,set_max:Array[Int]) extends Module  {
         
     val io = IO(new Bundle { 
 
@@ -65,46 +65,68 @@ class led_shine(sum_counter:Int) extends Module  {
     val segment = Module(new segment_shine(4)).io
     io.seg_line := segment.seg_line
     io.sel := segment.sel
-    val (div_sec_counter,div_sec_signal) = Counter(1.U.asBool,100000000)
-    val sec_counter_small = RegInit(0.U(32.W))
-    val sec_counter_large = RegInit(0.U(32.W))
+    val (div_sec_counter,div_sec_signal) = Counter(1.U.asBool,10000000)
 
-    val min_counter_small = RegInit(0.U(32.W))
-    val min_counter_large = RegInit(0.U(32.W))
+    val way_control_reg_0 = RegInit(0.U(32.W))
+    val way_control_reg_1 = RegInit(set_max(1).U(32.W))
+
+    val counter_finish_signal = Wire(Vec(2,(Bool())))
+    
+    // counter_finish_signal.zipWithIndex.foreach{case (a,index) => counter_finish_signal(index) := way_control_reg(index) === 0.U}
+    counter_finish_signal(0) := way_control_reg_0 === 0.U
+    counter_finish_signal(1) := way_control_reg_1 === 0.U
+    val counter_doing = RegInit(VecInit(Seq.fill(2)(0.U.asBool)))
+    counter_doing.zipWithIndex.foreach{case(a,index) => 
+            counter_doing(index) := Mux(div_sec_signal,if(index == 0) way_control_reg_0 else way_control_reg_1,counter_doing(index))
+    }
+
+    way_control_reg_0 := Mux(io.en,Mux(div_sec_signal,Mux(way_control_reg_0 === 0.U ,Mux(counter_finish_signal(1) && counter_doing(0) === 0.U,set_max(0).asUInt,0.U),way_control_reg_0 - 1.U),
+        way_control_reg_0),Mux(div_sec_signal && io.bottom(0),Mux(way_control_reg_0 === 0.U,set_max(0).asUInt,way_control_reg_0 - 1.U),
+        way_control_reg_0))
+
+    way_control_reg_1 := Mux(io.en,Mux(div_sec_signal,Mux(way_control_reg_1 === 0.U,Mux(counter_finish_signal(0) && counter_doing(1) === 0.U,set_max(1).asUInt,0.U),way_control_reg_1 - 1.U),
+        way_control_reg_1),Mux(div_sec_signal && io.bottom(1),Mux(way_control_reg_1 === 0.U,set_max(1).asUInt,way_control_reg_1 - 1.U),
+        way_control_reg_1))
+    
+    // val sec_counter_small = RegInit(0.U(32.W))
+    // val sec_counter_large = RegInit(0.U(32.W))
+
+    // val min_counter_small = RegInit(0.U(32.W))
+    // val min_counter_large = RegInit(0.U(32.W))
     
 
-    sec_counter_small := Mux(io.en && div_sec_signal,Mux(sec_counter_small === (10 - 1).U,0.U,(sec_counter_small + 1.U)),
-        Mux(!io.en && div_sec_signal && io.bottom(0) ,Mux(sec_counter_small === (10 - 1).U,0.U,(sec_counter_small + 1.U)),sec_counter_small)) 
-    val sec_signal_small = io.en && div_sec_signal && sec_counter_small === (10 - 1).U
+    // sec_counter_small := Mux(io.en && div_sec_signal,Mux(sec_counter_small === (10 - 1).U,0.U,(sec_counter_small + 1.U)),
+    //     Mux(!io.en && div_sec_signal && io.bottom(0) ,Mux(sec_counter_small === (10 - 1).U,0.U,(sec_counter_small + 1.U)),sec_counter_small)) 
+    // val sec_signal_small = io.en && div_sec_signal && sec_counter_small === (10 - 1).U
 
-    sec_counter_large := Mux(io.en && sec_signal_small,Mux(sec_counter_large === (6 - 1).U,0.U,(sec_counter_large + 1.U)),
-        Mux(!io.en && div_sec_signal && io.bottom(1) ,Mux(sec_counter_large === (6 - 1).U,0.U,(sec_counter_large + 1.U)),sec_counter_large)) 
-     val sec_signal_large = io.en && sec_signal_small && sec_counter_large === (6 - 1).U
+    // sec_counter_large := Mux(io.en && sec_signal_small,Mux(sec_counter_large === (6 - 1).U,0.U,(sec_counter_large + 1.U)),
+    //     Mux(!io.en && div_sec_signal && io.bottom(1) ,Mux(sec_counter_large === (6 - 1).U,0.U,(sec_counter_large + 1.U)),sec_counter_large)) 
+    //  val sec_signal_large = io.en && sec_signal_small && sec_counter_large === (6 - 1).U
 
-    min_counter_small := Mux(io.en && sec_signal_large,Mux(min_counter_small === (10 - 1).U,0.U,(min_counter_small + 1.U)),
-        Mux(!io.en && div_sec_signal && io.bottom(2) ,Mux(min_counter_small === (10 - 1).U,0.U,(min_counter_small + 1.U)),min_counter_small)) 
-    val min_signal_small = io.en && sec_signal_large && min_counter_small === (10 - 1).U
+    // min_counter_small := Mux(io.en && sec_signal_large,Mux(min_counter_small === (10 - 1).U,0.U,(min_counter_small + 1.U)),
+    //     Mux(!io.en && div_sec_signal && io.bottom(2) ,Mux(min_counter_small === (10 - 1).U,0.U,(min_counter_small + 1.U)),min_counter_small)) 
+    // val min_signal_small = io.en && sec_signal_large && min_counter_small === (10 - 1).U
     
-    min_counter_large := Mux(io.en && min_signal_small,Mux(min_counter_large === (6 - 1).U,0.U,(min_counter_large + 1.U)),
-        Mux(!io.en && div_sec_signal && io.bottom(3) ,Mux(min_counter_large === (6 - 1).U,0.U,(min_counter_large + 1.U)),min_counter_large)) 
-     val min_signal_large = io.en && min_signal_small && min_counter_large === (6 - 1).U
-    // val (sec_counter_small,sec_signal_small) = Counter(io.en && div_sec_signal,10)
-    // val (sec_counter_large,sec_signal_large) = Counter(io.en && sec_signal_small,6)
+    // min_counter_large := Mux(io.en && min_signal_small,Mux(min_counter_large === (6 - 1).U,0.U,(min_counter_large + 1.U)),
+    //     Mux(!io.en && div_sec_signal && io.bottom(3) ,Mux(min_counter_large === (6 - 1).U,0.U,(min_counter_large + 1.U)),min_counter_large)) 
+    //  val min_signal_large = io.en && min_signal_small && min_counter_large === (6 - 1).U
+    // // val (sec_counter_small,sec_signal_small) = Counter(io.en && div_sec_signal,10)
+    // // val (sec_counter_large,sec_signal_large) = Counter(io.en && sec_signal_small,6)
 
-    // val (min_counter_small,min_signal_small) = Counter(io.en && sec_signal_large,10)
-    // val (min_counter_large,min_signal_large) = Counter(io.en && min_signal_small,6)
+    // // val (min_counter_small,min_signal_small) = Counter(io.en && sec_signal_large,10)
+    // // val (min_counter_large,min_signal_large) = Counter(io.en && min_signal_small,6)
     
-    segment.data_in(0) := sec_counter_small
-    segment.data_in(1) := sec_counter_large
-    segment.data_in(2) := min_counter_small
-    segment.data_in(3) := min_counter_large
+    segment.data_in(0) := way_control_reg_0%10.U;
+    segment.data_in(1) := way_control_reg_0/10.U;
+    segment.data_in(2) := way_control_reg_1%10.U;
+    segment.data_in(3) := way_control_reg_1/10.U;
     
     segment.en := 1.U.asBool
 
     
 }
 object led_shine_test extends App{
-    (new ChiselStage).emitVerilog(new led_shine(6))
+    (new ChiselStage).emitVerilog(new led_shine(6,Array(32,45)))
 }
 
 // object seg_test extends App{
