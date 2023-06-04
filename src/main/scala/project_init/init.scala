@@ -125,9 +125,6 @@ class led_shine(sum_counter:Int,set_max:Array[Int]) extends Module  {
 
     
 }
-object led_shine_test extends App{
-    (new ChiselStage).emitVerilog(new led_shine(6,Array(32,45)))
-}
 
 // object seg_test extends App{
 //     (new ChiselStage).emitVerilog(new segment_shine(4))

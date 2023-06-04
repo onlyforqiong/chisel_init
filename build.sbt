@@ -3,7 +3,7 @@
 ThisBuild / scalaVersion     := "2.13.8"
 ThisBuild / version          := "0.1.0"
 ThisBuild / organization     := "%ORGANIZATION%"
-
+ThisBuild / javaOptions ++= Seq("-Xmx32g")
 val chiselVersion = "3.5.1"
 
 lazy val root = (project in file("."))
@@ -20,6 +20,7 @@ lazy val root = (project in file("."))
       "-Xcheckinit",
       "-P:chiselplugin:genBundleElements",
     ),
+    javaOptions ++= Seq("-Xmx32g"),
     addCompilerPlugin("edu.berkeley.cs" % "chisel3-plugin" % chiselVersion cross CrossVersion.full),
   )
 
