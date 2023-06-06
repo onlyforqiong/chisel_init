@@ -35,6 +35,30 @@ class KeyboardBottom extends BlackBox  {
     val ready = Output(Bool())
   })
 }
+
+class CharTable extends BlackBox {
+  val io = IO(new Bundle {
+    val clka = Input(Clock())
+    val ena = Input(Bool())
+    val addra = Input(UInt(13.W))
+    val douta = Output(UInt(9.W))
+  })
+}
+
+class VGAMem extends BlackBox {
+  val io = IO(new Bundle {
+    val clka = Input(Clock())
+    val ena = Input(Bool())
+    val wea = Input(UInt(1.W))
+    val addra = Input(UInt(12.W))
+    val dina = Input(UInt(8.W))
+    val clkb = Input(Clock())
+    val enb = Input(Bool())
+    val addrb = Input(UInt(12.W))
+    val doutb = Output(UInt(8.W))
+  })
+
+
 import scala.io.Source
 class FileReader(filename: String) extends Module {
   val io = IO(new Bundle {
@@ -75,9 +99,9 @@ class CommandLineTest extends Module {
     val led = Output(UInt(1.W))
   })
 
-  val rawTableData = Mem(256, UInt(16.W))
-  val lookupTable = Mem(256, UInt(8.W))
-  val vgaDataArray = Mem(500001, UInt(24.W))
+  // val rawTableData = Mem(256, UInt(16.W))
+  // val lookupTable = Mem(256, UInt(8.W))
+  // val vgaDataArray = Mem(80000, UInt(12.W))
   val charTable = Mem(5001, UInt(12.W))
   val screenData = Mem(2501, UInt(8.W))
 
@@ -179,15 +203,15 @@ class CommandLineTest extends Module {
     }
 
     // VGA data processing
-    for (tempV <- 1 until 481) {
+    for (tempV <- 1 until 17) {
       val charY = tempV / 16
-      for (tempH <- 1 until 681) {
+      for (tempH <- 1 until 321) {
         print(tempH)
         print("\n")
         val charX = tempH / 9
         downSet := (charX + charY * 70).U
         tempAsc := screenData(downSet)
-        vgaDataArray(tempH + (tempV << 10)) := Mux(charTable(tempAsc << 4 | ((tempV - 1) % 16).U)(tempH - 1), 0xFFFFFF.U, 0.U)
+        vgaDataArray(Cat(tempH.asUInt(9,0),tempV.asUInt(8,0))) := Mux(charTable(tempAsc << 4 | ((tempV - 1) % 16).U)((tempH - 1)%9), 0xFFFFFF.U, 0.U)
       }
     }
   }
