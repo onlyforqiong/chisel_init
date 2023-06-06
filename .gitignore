@@ -2,6 +2,7 @@
 *
 !*/
 !src/*
+!resource/*
 !*.scala
 !build.*
 !.gitignore
